@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <title>Monitoring Sisa Cuti</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f1f5f9;
+      padding: 20px;
+    }
+    h2 {
+      margin-bottom: 10px;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      margin-bottom: 15px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #fff;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #e5e7eb;
+      text-align: left;
+      font-size: 14px;
+    }
+    th {
+      background: #2563eb;
+      color: #fff;
+    }
+    tr:hover {
+      background: #f8fafc;
+    }
+    .empty {
+      text-align: center;
+      padding: 20px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>📋 Monitoring Sisa Cuti Pegawai</h2>
+
+  <input
+    type="text"
+    id="search"
+    placeholder="Ketik nama pegawai..."
+    autocomplete="off"
+  />
+
+  <table>
+    <thead>
+      <tr>
+        <th>Nama</th>
+        <th>NIP</th>
+        <th>Jenis Cuti</th>
+        <th>Mulai</th>
+        <th>Akhir Cuti</th>
+        <th>Sisa Cuti</th>
+      </tr>
+    </thead>
+    <tbody id="result">
+      <tr>
+        <td colspan="6" class="empty">Ketik nama untuk mencari data</td>
+      </tr>
+    </tbody>
+  </table>
+
+<script>
+  // 🔴 GANTI DENGAN DATA SUPABASE ANDA
+  const SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co";
+  const SUPABASE_KEY = "YOUR_PUBLIC_ANON_KEY";
+
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const input = document.getElementById("search");
+  const result = document.getElementById("result");
+
+  let timer = null;
+
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(searchData, 300);
+  });
+
+  async function searchData() {
+    const keyword = input.value.trim();
+    if (keyword.length < 2) {
+      result.innerHTML = `
+        <tr><td colspan="6" class="empty">Ketik minimal 2 huruf</td></tr>
+      `;
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from("cuti_view_manual")
+      .select("nama,nip,jenis_cuti,mulai,akhir_cuti,sisa_cuti")
+      .ilike("nama", `%${keyword}%`)
+      .order("nama")
+      .limit(20);
+
+    if (error) {
+      result.innerHTML = `
+        <tr><td colspan="6" class="empty">Terjadi kesalahan</td></tr>
+      `;
+      return;
+    }
+
+    if (!data.length) {
+      result.innerHTML = `
+        <tr><td colspan="6" class="empty">Data tidak ditemukan</td></tr>
+      `;
+      return;
+    }
+
+    result.innerHTML = data.map(row => `
+      <tr>
+        <td>${row.nama}</td>
+        <td>${row.nip}</td>
+        <td>${row.jenis_cuti}</td>
+        <td>${row.mulai}</td>
+        <td>${row.akhir_cuti}</td>
+        <td><b>${row.sisa_cuti}</b></td>
+      </tr>
+    `).join("");
+  }
+</script>
+
+</body>
+</html>
