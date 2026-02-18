@@ -5,7 +5,6 @@
   <title>Monitoring Sisa Cuti</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -16,7 +15,6 @@
       margin: 0;
     }
 
-    /* ===== HEADER ===== */
     .header {
       display: flex;
       align-items: center;
@@ -34,26 +32,43 @@
       font-weight: 600;
     }
 
-    .back-btn:hover {
-      background: #1d4ed8;
-    }
-
     h2 {
       margin: 0;
       font-size: 20px;
     }
 
-    /* ===== SEARCH ===== */
     input {
       width: 100%;
       padding: 12px;
       font-size: 16px;
       border-radius: 8px;
       border: 1px solid #ccc;
-      margin-bottom: 15px;
+      margin-bottom: 10px;
     }
 
-    /* ===== TABLE ===== */
+    /* === FILTER === */
+    .filter {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+      flex-wrap: wrap;
+    }
+
+    .filter button {
+      border: none;
+      padding: 8px 14px;
+      border-radius: 20px;
+      background: #e5e7eb;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    .filter button.active {
+      background: #2563eb;
+      color: #fff;
+    }
+
     table {
       width: 100%;
       border-collapse: collapse;
@@ -85,71 +100,64 @@
       padding: 20px;
       color: #64748b;
     }
-
-    /* ===== MOBILE ===== */
-    @media (max-width: 768px) {
-      th, td {
-        font-size: 13px;
-        padding: 8px;
-      }
-    }
   </style>
 </head>
 <body>
 
-  <!-- HEADER -->
-  <div class="header">
-    <a class="back-btn" href="https://rikocagat.github.io/admin-cuti-versi2/">
-      ← Back
-    </a>
-    <h2>Monitoring Sisa Cuti Pegawai</h2>
-  </div>
+<div class="header">
+  <a class="back-btn" href="https://rikocagat.github.io/admin-cuti-versi2/">← Back</a>
+  <h2>Monitoring Sisa Cuti Pegawai</h2>
+</div>
 
-  <!-- SEARCH -->
-  <input
-    type="text"
-    id="search"
-    placeholder="Ketik nama pegawai..."
-    autocomplete="off"
-  />
+<input id="search" placeholder="Ketik nama pegawai..." autocomplete="off" />
 
-  <!-- TABLE -->
-  <table>
-    <thead>
-      <tr>
-        <th>Nama</th>
-        <th>NIP</th>
-        <th>Jenis Cuti</th>
-        <th>Mulai</th>
-        <th>Akhir Cuti</th>
-        <th>Sisa Cuti</th>
-      </tr>
-    </thead>
-    <tbody id="result">
-      <tr>
-        <td colspan="6" class="empty">
-          Ketik nama untuk mencari data
-        </td>
-      </tr>
-    </tbody>
-  </table>
+<!-- FILTER JENIS CUTI -->
+<div class="filter">
+  <button class="active" data-jenis="TAHUNAN">Tahunan</button>
+  <button data-jenis="SAKIT">Sakit</button>
+  <button data-jenis="MELAHIRKAN">Melahirkan</button>
+  <button data-jenis="ALASAN_PENTING">Alasan Penting</button>
+  <button data-jenis="BESAR">Besar</button>
+</div>
+
+<table>
+  <thead>
+    <tr>
+      <th>Nama</th>
+      <th>NIP</th>
+      <th>Jenis Cuti</th>
+      <th>Mulai</th>
+      <th>Akhir Cuti</th>
+      <th>Sisa Cuti</th>
+    </tr>
+  </thead>
+  <tbody id="result">
+    <tr>
+      <td colspan="6" class="empty">Ketik nama untuk mencari data</td>
+    </tr>
+  </tbody>
+</table>
 
 <script>
-  // ===============================
-  // KONFIGURASI SUPABASE
-  // ===============================
   const SUPABASE_URL = "https://ufiqibxdgwlysqhinqbz.supabase.co";
   const SUPABASE_KEY = "sb_publishable_EVSVWnsUriOPA_O3RnGTpg_Zmd4pyAL";
-
-  const sb = window.supabase.createClient(
-    SUPABASE_URL,
-    SUPABASE_KEY
-  );
+  const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
   const input = document.getElementById("search");
   const result = document.getElementById("result");
+  const buttons = document.querySelectorAll(".filter button");
 
   let timer = null;
+  let jenisAktif = "TAHUNAN";
+
+  buttons.forEach(btn => {
+    btn.onclick = () => {
+      buttons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      jenisAktif = btn.dataset.jenis;
+      searchData();
+    };
+  });
 
   input.addEventListener("input", () => {
     clearTimeout(timer);
@@ -161,11 +169,7 @@
 
     if (keyword.length < 2) {
       result.innerHTML = `
-        <tr>
-          <td colspan="6" class="empty">
-            Ketik minimal 2 huruf
-          </td>
-        </tr>
+        <tr><td colspan="6" class="empty">Ketik minimal 2 huruf</td></tr>
       `;
       return;
     }
@@ -174,41 +178,25 @@
       .from("cuti_view_manual")
       .select("nama,nip,jenis_cuti,mulai,akhir_cuti,sisa_cuti")
       .ilike("nama", `%${keyword}%`)
-      // 🔥 URUTKAN TANGGAL PALING BARU DI ATAS
+      .eq("jenis_cuti", jenisAktif)
       .order("mulai", { ascending: false })
       .limit(30);
 
-    if (error) {
-      console.error(error);
+    if (error || !data.length) {
       result.innerHTML = `
-        <tr>
-          <td colspan="6" class="empty">
-            Terjadi kesalahan
-          </td>
-        </tr>
+        <tr><td colspan="6" class="empty">Data tidak ditemukan</td></tr>
       `;
       return;
     }
 
-    if (!data || data.length === 0) {
-      result.innerHTML = `
-        <tr>
-          <td colspan="6" class="empty">
-            Data tidak ditemukan
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    result.innerHTML = data.map(row => `
+    result.innerHTML = data.map(r => `
       <tr>
-        <td>${row.nama}</td>
-        <td>${row.nip}</td>
-        <td>${row.jenis_cuti}</td>
-        <td>${row.mulai}</td>
-        <td>${row.akhir_cuti}</td>
-        <td><strong>${row.sisa_cuti}</strong></td>
+        <td>${r.nama}</td>
+        <td>${r.nip}</td>
+        <td>${r.jenis_cuti}</td>
+        <td>${r.mulai}</td>
+        <td>${r.akhir_cuti}</td>
+        <td><strong>${r.sisa_cuti}</strong></td>
       </tr>
     `).join("");
   }
