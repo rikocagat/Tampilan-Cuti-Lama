@@ -13,10 +13,37 @@
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       background: #f1f5f9;
       padding: 20px;
+      margin: 0;
     }
+
+    /* ===== HEADER ===== */
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+
+    .back-btn {
+      text-decoration: none;
+      background: #2563eb;
+      color: #fff;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .back-btn:hover {
+      background: #1d4ed8;
+    }
+
     h2 {
-      margin-bottom: 10px;
+      margin: 0;
+      font-size: 20px;
     }
+
+    /* ===== SEARCH ===== */
     input {
       width: 100%;
       padding: 12px;
@@ -25,6 +52,8 @@
       border: 1px solid #ccc;
       margin-bottom: 15px;
     }
+
+    /* ===== TABLE ===== */
     table {
       width: 100%;
       border-collapse: collapse;
@@ -32,30 +61,51 @@
       border-radius: 10px;
       overflow: hidden;
     }
+
     th, td {
       padding: 10px;
       border-bottom: 1px solid #e5e7eb;
       text-align: left;
       font-size: 14px;
     }
+
     th {
       background: #2563eb;
       color: #fff;
+      position: sticky;
+      top: 0;
     }
+
     tr:hover {
       background: #f8fafc;
     }
+
     .empty {
       text-align: center;
       padding: 20px;
       color: #64748b;
     }
+
+    /* ===== MOBILE ===== */
+    @media (max-width: 768px) {
+      th, td {
+        font-size: 13px;
+        padding: 8px;
+      }
+    }
   </style>
 </head>
 <body>
 
-  <h2>📋 Monitoring Sisa Cuti Pegawai</h2>
+  <!-- HEADER -->
+  <div class="header">
+    <a class="back-btn" href="https://rikocagat.github.io/admin-cuti-versi2/">
+      ← Back
+    </a>
+    <h2>Monitoring Sisa Cuti Pegawai</h2>
+  </div>
 
+  <!-- SEARCH -->
   <input
     type="text"
     id="search"
@@ -63,6 +113,7 @@
     autocomplete="off"
   />
 
+  <!-- TABLE -->
   <table>
     <thead>
       <tr>
@@ -76,7 +127,9 @@
     </thead>
     <tbody id="result">
       <tr>
-        <td colspan="6" class="empty">Ketik nama untuk mencari data</td>
+        <td colspan="6" class="empty">
+          Ketik nama untuk mencari data
+        </td>
       </tr>
     </tbody>
   </table>
@@ -88,8 +141,6 @@
   const SUPABASE_URL = "https://ufiqibxdgwlysqhinqbz.supabase.co";
   const SUPABASE_KEY = "sb_publishable_EVSVWnsUriOPA_O3RnGTpg_Zmd4pyAL";
 
-  // ⛔ JANGAN pakai nama variabel `supabase`
-  // ✅ Pakai `sb`
   const sb = window.supabase.createClient(
     SUPABASE_URL,
     SUPABASE_KEY
@@ -110,7 +161,11 @@
 
     if (keyword.length < 2) {
       result.innerHTML = `
-        <tr><td colspan="6" class="empty">Ketik minimal 2 huruf</td></tr>
+        <tr>
+          <td colspan="6" class="empty">
+            Ketik minimal 2 huruf
+          </td>
+        </tr>
       `;
       return;
     }
@@ -119,20 +174,29 @@
       .from("cuti_view_manual")
       .select("nama,nip,jenis_cuti,mulai,akhir_cuti,sisa_cuti")
       .ilike("nama", `%${keyword}%`)
-      .order("nama", { ascending: true })
-      .limit(20);
+      // 🔥 URUTKAN TANGGAL PALING BARU DI ATAS
+      .order("mulai", { ascending: false })
+      .limit(30);
 
     if (error) {
-      console.error("Supabase error:", error);
+      console.error(error);
       result.innerHTML = `
-        <tr><td colspan="6" class="empty">Terjadi kesalahan</td></tr>
+        <tr>
+          <td colspan="6" class="empty">
+            Terjadi kesalahan
+          </td>
+        </tr>
       `;
       return;
     }
 
     if (!data || data.length === 0) {
       result.innerHTML = `
-        <tr><td colspan="6" class="empty">Data tidak ditemukan</td></tr>
+        <tr>
+          <td colspan="6" class="empty">
+            Data tidak ditemukan
+          </td>
+        </tr>
       `;
       return;
     }
@@ -144,7 +208,7 @@
         <td>${row.jenis_cuti}</td>
         <td>${row.mulai}</td>
         <td>${row.akhir_cuti}</td>
-        <td><b>${row.sisa_cuti}</b></td>
+        <td><strong>${row.sisa_cuti}</strong></td>
       </tr>
     `).join("");
   }
