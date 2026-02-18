@@ -5,7 +5,7 @@
   <title>Monitoring Sisa Cuti</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <!-- Supabase JS -->
+  <!-- Supabase JS v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
@@ -82,11 +82,18 @@
   </table>
 
 <script>
-  // 🔴 GANTI DENGAN DATA SUPABASE ANDA
+  // ===============================
+  // KONFIGURASI SUPABASE
+  // ===============================
   const SUPABASE_URL = "https://ufiqibxdgwlysqhinqbz.supabase.co";
   const SUPABASE_KEY = "sb_publishable_EVSVWnsUriOPA_O3RnGTpg_Zmd4pyAL";
 
-  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  // ⛔ JANGAN pakai nama variabel `supabase`
+  // ✅ Pakai `sb`
+  const sb = window.supabase.createClient(
+    SUPABASE_URL,
+    SUPABASE_KEY
+  );
 
   const input = document.getElementById("search");
   const result = document.getElementById("result");
@@ -100,6 +107,7 @@
 
   async function searchData() {
     const keyword = input.value.trim();
+
     if (keyword.length < 2) {
       result.innerHTML = `
         <tr><td colspan="6" class="empty">Ketik minimal 2 huruf</td></tr>
@@ -107,21 +115,22 @@
       return;
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await sb
       .from("cuti_view_manual")
       .select("nama,nip,jenis_cuti,mulai,akhir_cuti,sisa_cuti")
       .ilike("nama", `%${keyword}%`)
-      .order("nama")
+      .order("nama", { ascending: true })
       .limit(20);
 
     if (error) {
+      console.error("Supabase error:", error);
       result.innerHTML = `
         <tr><td colspan="6" class="empty">Terjadi kesalahan</td></tr>
       `;
       return;
     }
 
-    if (!data.length) {
+    if (!data || data.length === 0) {
       result.innerHTML = `
         <tr><td colspan="6" class="empty">Data tidak ditemukan</td></tr>
       `;
